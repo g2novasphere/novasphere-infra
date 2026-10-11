@@ -20,10 +20,10 @@ Chacun doit **commiter sous son nom**, **ouvrir et relire des PR**, et **savoir 
 - [ ] Lancer `scripts/create-state-bucket.sh` (bucket versionné, chiffré, accès public bloqué)
 
 **Johan (Git)**
-- [ ] Créer le dépôt `novasphere-infra` et pousser le premier commit **avec le backend déjà configuré**
-- [ ] Protéger `main` : PR obligatoire, 1 approbation minimum, pas de push direct
+- [x] Créer le dépôt `novasphere-infra` et pousser le premier commit **avec le backend déjà configuré**
+- [x] Protéger `main` : PR obligatoire, 1 approbation minimum, pas de push direct
 - [ ] Ajouter l'intervenant comme collaborateur
-- [ ] Commiter `.terraform.lock.hcl` (généré pour toutes les plateformes)
+- [x] Commiter `.terraform.lock.hcl` (généré pour toutes les plateformes)
 
 **Maxime (module)**
 - [ ] Créer le dépôt `terraform-aws-novasphere-web` avec la structure vide : `.gitignore`, `versions.tf`, `variables.tf`, `main.tf`, `outputs.tf`
