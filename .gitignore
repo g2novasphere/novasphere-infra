@@ -1,0 +1,33 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Valeurs réelles : seul terraform.tfvars.example est commité
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# Clés et credentials
+*.pem
+*.key
+.env
+.env.*
+credentials
+
+# Extension éventuelle
+ansible/inventory*.ini
+
+# Éditeurs et OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

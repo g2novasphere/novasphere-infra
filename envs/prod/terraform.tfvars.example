@@ -1,0 +1,3 @@
+# Copier en terraform.tfvars (jamais commité)
+environment = "prod"
+owner       = "equipe2-5SRC4"

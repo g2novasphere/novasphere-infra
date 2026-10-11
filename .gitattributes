@@ -1,0 +1,10 @@
+# Fins de ligne Unix (LF) pour tout le dépôt, même depuis Windows.
+# Indispensable : un script .sh en CRLF échoue sur les instances Linux et dans la CI.
+* text=auto eol=lf
+*.sh text eol=lf
+*.tf text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary
