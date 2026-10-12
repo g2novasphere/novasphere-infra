@@ -30,8 +30,8 @@ Chacun doit **commiter sous son nom**, **ouvrir et relire des PR**, et **savoir 
 
 **Aboubakar (CI/CD et sécurité)**
 - [x] Écrire `envs/*/ci.tf` : fournisseur OIDC GitHub (créé par dev, lu par prod) et rôles `novasphere-ci-dev` / `novasphere-ci-prod`
-- [ ] Les créer une seule fois en local avec `-target` (voir README, étape 2), puis renseigner les variables GitHub `AWS_ROLE_ARN_DEV` et `AWS_ROLE_ARN_PROD`
-- [ ] Créer l'environnement GitHub `prod` avec approbation obligatoire
+- [x] Les créer une seule fois en local avec `-target` (voir README, étape 2), puis renseigner les variables GitHub `AWS_ROLE_ARN_DEV` et `AWS_ROLE_ARN_PROD`
+- [x] Créer l'environnement GitHub `prod` avec approbation obligatoire
 
 **Tous**
 - [ ] `git config user.name` / `user.email` sur son poste
