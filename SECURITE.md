@@ -67,14 +67,18 @@ Principe : moindre privilège. L'instance de dev ne peut pas lire le secret de p
 
 Le fournisseur OIDC `token.actions.githubusercontent.com` et deux rôles (`novasphere-ci-dev`, `novasphere-ci-prod`) sont créés par `ci.tf`. Le job demande un jeton (`permissions: id-token: write`), AWS vérifie sa signature puis les conditions de la politique de confiance :
 
-| Rôle | `aud` | `sub` autorisés |
-|---|---|---|
-| `novasphere-ci-dev` | `sts.amazonaws.com` | `repo:<org>/novasphere-infra:pull_request`, `repo:<org>/novasphere-infra:ref:refs/heads/main` |
-| `novasphere-ci-prod` | `sts.amazonaws.com` | `repo:<org>/novasphere-infra:pull_request` (plan), `repo:<org>/novasphere-infra:environment:prod` (apply) |
+| Rôle | `aud` | `sub` autorisés | Utilisé par |
+|---|---|---|---|
+| `novasphere-ci-dev` | `sts.amazonaws.com` | `repo:g2novasphere/novasphere-infra:pull_request`, `…:ref:refs/heads/main`, `…:environment:dev` | plans des PR (dev et prod), apply de dev, dérive de dev |
+| `novasphere-ci-prod` | `sts.amazonaws.com` | `repo:g2novasphere/novasphere-infra:environment:prod` **uniquement** | apply de prod et dérive de prod, après approbation |
+
+Le rôle prod n'accepte que l'environnement GitHub `prod`, qui exige une approbation et n'autorise que la branche `main` : sans approbation, aucun credential prod n'est délivré. Le plan de prod affiché en PR est calculé avec le rôle de dev, qui a déjà accès au compte (même compte AWS pour dev et prod) : cela n'ajoute aucun droit.
 
 **Différence avec des credentials stockés (modèle du Learner Lab).** Des clés dans les secrets du dépôt sont des secrets à renouveler, valables pour quiconque les obtient, depuis n'importe où. Avec OIDC, rien n'est stocké : les credentials durent quelques minutes et ne sont délivrés qu'à un workflow de ce dépôt, sur la branche ou l'environnement autorisé.
 
-**Limite connue.** Le rôle CI doit pouvoir créer le rôle des instances (`iam:CreateRole`, `iam:PassRole`). À COMPLÉTER : la politique retenue et comment elle est restreinte (préfixe `novasphere-*`, permissions boundary).
+**Droits des rôles CI.** `PowerUserAccess` (tous les services sauf IAM) et une politique IAM en ligne : lecture IAM partout, écriture seulement sur `role/`, `instance-profile/` et `policy/` `novasphere-<env>-*`. Les rôles `novasphere-ci-*` ne correspondent pas à ce préfixe : la CI ne peut ni augmenter ses propres droits, ni modifier le rôle de l'autre environnement. Conséquence : `ci.tf` se modifie en local, par le responsable CI/CD.
+
+**Limites connues.** Dev et prod partagent un compte : le rôle de dev a techniquement accès aux ressources de prod (l'isolation forte demanderait deux comptes AWS). Une PR non relue peut exécuter du code avec le rôle de dev pendant le plan ; l'idéal serait un rôle de plan en lecture seule.
 
 ## 4. Groupes de sécurité
 
