@@ -69,10 +69,10 @@ Le fournisseur OIDC `token.actions.githubusercontent.com` et deux rôles (`novas
 
 | Rôle | `aud` | `sub` autorisés | Utilisé par |
 |---|---|---|---|
-| `novasphere-ci-dev` | `sts.amazonaws.com` | `repo:g2novasphere/novasphere-infra:pull_request`, `…:ref:refs/heads/main`, `…:environment:dev` | plans des PR (dev et prod), apply de dev, dérive de dev |
-| `novasphere-ci-prod` | `sts.amazonaws.com` | `repo:g2novasphere/novasphere-infra:environment:prod` **uniquement** | apply de prod et dérive de prod, après approbation |
+| `novasphere-ci-dev` | `sts.amazonaws.com` | `repo:g2novasphere@341004713/novasphere-infra@1414470281:pull_request`, `…:ref:refs/heads/main`, `…:environment:dev` | plans des PR (dev et prod), apply de dev, dérive de dev |
+| `novasphere-ci-prod` | `sts.amazonaws.com` | `repo:g2novasphere@341004713/novasphere-infra@1414470281:environment:prod` **uniquement** | apply de prod et dérive de prod, après approbation |
 
-Le rôle prod n'accepte que l'environnement GitHub `prod`, qui exige une approbation et n'autorise que la branche `main` : sans approbation, aucun credential prod n'est délivré. Le plan de prod affiché en PR est calculé avec le rôle de dev, qui a déjà accès au compte (même compte AWS pour dev et prod) : cela n'ajoute aucun droit.
+Le dépôt utilise les sujets OIDC immuables : le `sub` contient les identifiants numériques de l'organisation et du dépôt, donc un dépôt supprimé puis recréé sous le même nom n'obtient pas les credentials. Le rôle prod n'accepte que l'environnement GitHub `prod`, qui exige une approbation et n'autorise que la branche `main` : sans approbation, aucun credential prod n'est délivré. Le plan de prod affiché en PR est calculé avec le rôle de dev, qui a déjà accès au compte (même compte AWS pour dev et prod) : cela n'ajoute aucun droit.
 
 **Différence avec des credentials stockés (modèle du Learner Lab).** Des clés dans les secrets du dépôt sont des secrets à renouveler, valables pour quiconque les obtient, depuis n'importe où. Avec OIDC, rien n'est stocké : les credentials durent quelques minutes et ne sont délivrés qu'à un workflow de ce dépôt, sur la branche ou l'environnement autorisé.
 

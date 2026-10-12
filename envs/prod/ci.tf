@@ -4,15 +4,14 @@
 # le rôle qui lui permet de s'authentifier. Toute modification de ce fichier
 # s'applique aussi en local, car le rôle CI n'a pas le droit de se modifier lui-même.
 
-variable "github_repo" {
-  description = "Dépôt GitHub autorisé à assumer les rôles CI (owner/repo), pas un secret"
+# Le dépôt utilise les sujets OIDC immuables (use_immutable_subject = true) :
+# le claim "sub" contient les ID numériques de l'org et du dépôt, pas seulement leurs noms.
+# Un dépôt renommé ou recréé sous le même nom n'obtient donc PAS les credentials.
+# Valeur lue avec : gh api repos/<owner>/<repo>/actions/oidc/customization/sub (champ sub_claim_prefix)
+variable "github_sub_prefix" {
+  description = "Préfixe du claim sub OIDC du dépôt (org@id/repo@id), pas un secret"
   type        = string
-  default     = "g2novasphere/novasphere-infra"
-
-  validation {
-    condition     = can(regex("^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$", var.github_repo))
-    error_message = "github_repo doit être au format owner/repo."
-  }
+  default     = "repo:g2novasphere@341004713/novasphere-infra@1414470281"
 }
 
 locals {
@@ -29,12 +28,12 @@ locals {
   # Le rôle prod n'accepte QUE l'environnement GitHub protégé : sans approbation, pas de credentials prod.
   ci_subjects = {
     dev = [
-      "repo:${var.github_repo}:pull_request",
-      "repo:${var.github_repo}:ref:refs/heads/main",
-      "repo:${var.github_repo}:environment:dev",
+      "${var.github_sub_prefix}:pull_request",
+      "${var.github_sub_prefix}:ref:refs/heads/main",
+      "${var.github_sub_prefix}:environment:dev",
     ]
     prod = [
-      "repo:${var.github_repo}:environment:prod",
+      "${var.github_sub_prefix}:environment:prod",
     ]
   }
 }
