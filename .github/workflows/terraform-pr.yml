@@ -1,0 +1,104 @@
+# Sur chaque pull request vers main : fmt, validate et plan de dev ET prod, postés en commentaire.
+# Rien n'est appliqué ici. Les deux plans utilisent le rôle de dev : même compte AWS,
+# et le rôle prod n'est délivré qu'à un job approuvé dans l'environnement GitHub `prod`.
+name: terraform-pr
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write       # jeton OIDC échangé contre des credentials AWS
+  pull-requests: write  # commentaire du plan
+
+concurrency:
+  group: terraform-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+  AWS_REGION: eu-west-3
+  TF_VAR_owner: equipe2-5SRC4
+
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.14.0"
+          terraform_wrapper: false
+      - run: terraform fmt -check -recursive -diff
+
+  plan:
+    needs: fmt
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [dev, prod]
+    env:
+      TF_VAR_environment: ${{ matrix.env }}
+      # Valeur réelle jamais affichée : GitHub masque les secrets dans les logs.
+      TF_VAR_app_secret: ${{ matrix.env == 'prod' && secrets.APP_SECRET_PROD || secrets.APP_SECRET_DEV }}
+      MODULE_DEPLOY_KEY: ${{ secrets.MODULE_DEPLOY_KEY }}
+    defaults:
+      run:
+        working-directory: envs/${{ matrix.env }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Clé de lecture seule du dépôt privé du module (utilisée dès que web.tf l'appelle).
+      - if: env.MODULE_DEPLOY_KEY != ''
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.MODULE_DEPLOY_KEY }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.14.0"
+          terraform_wrapper: false
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_DEV }}
+          role-session-name: gh-pr-${{ github.event.pull_request.number }}-${{ matrix.env }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - run: terraform init
+      - run: terraform validate -no-color
+
+      - id: plan
+        run: |
+          set +e
+          terraform plan -no-color -lock-timeout=5m -out=tfplan > plan.log 2>&1
+          code=$?
+          cat plan.log
+          exit $code
+
+      - name: Commenter le plan dans la PR
+        if: always() && steps.plan.outcome != 'skipped'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          OUTCOME: ${{ steps.plan.outcome }}
+          ENV_NAME: ${{ matrix.env }}
+        run: |
+          {
+            echo "### Plan \`${ENV_NAME}\` : ${OUTCOME}"
+            echo
+            grep -E '^(Plan:|No changes|Error)' plan.log | head -5 || true
+            echo
+            echo '<details><summary>Plan complet</summary>'
+            echo
+            echo '```'
+            tail -c 60000 plan.log
+            echo '```'
+            echo '</details>'
+            echo
+            echo "_Commit ${{ github.event.pull_request.head.sha }}, run ${{ github.run_id }}_"
+          } > comment.md
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file comment.md

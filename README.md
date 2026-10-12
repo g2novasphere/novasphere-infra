@@ -51,16 +51,27 @@ aws sts get-caller-identity     # le numéro de compte doit être celui de l'éq
 git add envs/*/backend.tf && git commit -m "chore: nom du bucket de state"
 ```
 
-**Étape 2 — créer l'accès de la CI** (une seule fois, seul `apply` fait hors de la CI, car elle ne peut pas créer le rôle qui lui permet de s'authentifier) :
+**Étape 2 — créer l'accès de la CI** (une seule fois, par le responsable CI/CD ; seul `apply` fait hors de la CI, car elle ne peut pas créer le rôle qui lui permet de s'authentifier). Dev d'abord : il crée le fournisseur OIDC, que prod ne fait que lire.
 ```bash
-cd envs/dev
-terraform apply -target=aws_iam_openid_connect_provider.github -target=aws_iam_role.ci
-cd ../prod
-terraform apply -target=aws_iam_role.ci
+for env in dev prod; do
+  cp -n envs/$env/terraform.tfvars.example envs/$env/terraform.tfvars
+  terraform -chdir=envs/$env init
+  terraform -chdir=envs/$env apply \
+    -target=aws_iam_role_policy_attachment.ci_poweruser \
+    -target=aws_iam_role_policy.ci_iam
+done
 ```
-Le fournisseur OIDC est unique dans le compte : il est créé par dev (`create_github_oidc_provider = true`) et seulement lu par prod (`false`). Reporter ensuite les ARN des deux rôles dans les variables GitHub `AWS_ROLE_ARN_DEV` et `AWS_ROLE_ARN_PROD`.
+Sous PowerShell : même commande dans une boucle `foreach ($env in "dev","prod") { ... }`, avec `` ` `` en fin de ligne.
 
-Puis créer l'environnement GitHub protégé : *Settings* → *Environments* → *New environment* `prod` → *Required reviewers* : au moins un membre.
+Puis renseigner GitHub (CLI `gh`, droits admin sur le dépôt) :
+```bash
+REPO=g2novasphere/novasphere-infra
+gh variable set AWS_ROLE_ARN_DEV  -R $REPO --body "$(terraform -chdir=envs/dev  output -raw ci_role_arn)"
+gh variable set AWS_ROLE_ARN_PROD -R $REPO --body "$(terraform -chdir=envs/prod output -raw ci_role_arn)"
+```
+Créer l'environnement protégé : *Settings* → *Environments* → *New environment* `prod` → *Required reviewers* : au moins deux membres → *Deployment branches* : `main` uniquement. L'environnement `dev` est créé automatiquement au premier run.
+
+Vérifier : *Actions* → *terraform-apply* → *Run workflow* → `apply`. Le job `apply-dev` doit passer l'étape *configure-aws-credentials*, et `apply-prod` doit attendre une approbation.
 
 **Étape 3 — vérifier localement** (facultatif, sans rien créer) :
 ```bash

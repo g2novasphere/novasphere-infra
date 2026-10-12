@@ -1,0 +1,145 @@
+# Déploiement : au merge sur main, apply de dev à partir du fichier de plan, puis
+# apply de prod après approbation dans l'environnement GitHub protégé `prod`.
+# À la main (Run workflow) : "apply" pour redéployer en début de session,
+# "drift" pour détecter une dérive (plan -detailed-exitcode, rien n'est modifié).
+name: terraform-apply
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "apply = redéployer dev puis prod ; drift = détecter une dérive"
+        type: choice
+        options: [apply, drift]
+        default: apply
+
+permissions:
+  contents: read
+  id-token: write
+
+# Un seul déploiement à la fois, jamais interrompu en plein apply.
+concurrency:
+  group: terraform-apply
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+  AWS_REGION: eu-west-3
+  TF_VAR_owner: equipe2-5SRC4
+
+jobs:
+  apply-dev:
+    if: github.event_name == 'push' || inputs.action == 'apply'
+    runs-on: ubuntu-latest
+    environment: dev
+    env:
+      TF_VAR_environment: dev
+      TF_VAR_app_secret: ${{ secrets.APP_SECRET_DEV }}
+      MODULE_DEPLOY_KEY: ${{ secrets.MODULE_DEPLOY_KEY }}
+    defaults:
+      run:
+        working-directory: envs/dev
+    steps:
+      - uses: actions/checkout@v4
+      - if: env.MODULE_DEPLOY_KEY != ''
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.MODULE_DEPLOY_KEY }}
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.14.0"
+          terraform_wrapper: false
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_DEV }}
+          role-session-name: gh-apply-dev-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+      - run: terraform init
+      - run: terraform plan -no-color -lock-timeout=5m -out=tfplan
+      - run: terraform apply -no-color -lock-timeout=5m tfplan
+      - name: URL de dev
+        run: |
+          url=$(terraform output -raw alb_dns_name 2>/dev/null || true)
+          [ -n "$url" ] && echo "Dev : http://$url" >> "$GITHUB_STEP_SUMMARY" || true
+
+  apply-prod:
+    needs: apply-dev
+    runs-on: ubuntu-latest
+    environment: prod   # approbation obligatoire ; seul sub accepté par le rôle prod
+    env:
+      TF_VAR_environment: prod
+      TF_VAR_app_secret: ${{ secrets.APP_SECRET_PROD }}
+      MODULE_DEPLOY_KEY: ${{ secrets.MODULE_DEPLOY_KEY }}
+    defaults:
+      run:
+        working-directory: envs/prod
+    steps:
+      - uses: actions/checkout@v4
+      - if: env.MODULE_DEPLOY_KEY != ''
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.MODULE_DEPLOY_KEY }}
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.14.0"
+          terraform_wrapper: false
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_PROD }}
+          role-session-name: gh-apply-prod-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+      - run: terraform init
+      - run: terraform plan -no-color -lock-timeout=5m -out=tfplan
+      - run: terraform apply -no-color -lock-timeout=5m tfplan
+      - name: URL de prod
+        run: |
+          url=$(terraform output -raw alb_dns_name 2>/dev/null || true)
+          [ -n "$url" ] && echo "Prod : http://$url" >> "$GITHUB_STEP_SUMMARY" || true
+
+  drift:
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'drift'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [dev, prod]
+    # Le rôle prod n'est délivré qu'à l'environnement protégé : la dérive prod demande aussi une approbation.
+    environment: ${{ matrix.env }}
+    env:
+      TF_VAR_environment: ${{ matrix.env }}
+      TF_VAR_app_secret: ${{ matrix.env == 'prod' && secrets.APP_SECRET_PROD || secrets.APP_SECRET_DEV }}
+      MODULE_DEPLOY_KEY: ${{ secrets.MODULE_DEPLOY_KEY }}
+    defaults:
+      run:
+        working-directory: envs/${{ matrix.env }}
+    steps:
+      - uses: actions/checkout@v4
+      - if: env.MODULE_DEPLOY_KEY != ''
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.MODULE_DEPLOY_KEY }}
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.14.0"
+          terraform_wrapper: false
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ matrix.env == 'prod' && vars.AWS_ROLE_ARN_PROD || vars.AWS_ROLE_ARN_DEV }}
+          role-session-name: gh-drift-${{ matrix.env }}-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+      - run: terraform init
+      - name: Détection de dérive
+        run: |
+          set +e
+          terraform plan -no-color -lock-timeout=5m -detailed-exitcode
+          code=$?
+          case $code in
+            0) echo "✅ ${{ matrix.env }} : aucune dérive" >> "$GITHUB_STEP_SUMMARY" ;;
+            2) echo "⚠️ ${{ matrix.env }} : DÉRIVE détectée (voir le plan)" >> "$GITHUB_STEP_SUMMARY"
+               echo "::warning::Dérive détectée en ${{ matrix.env }}" ;;
+            *) echo "❌ ${{ matrix.env }} : erreur du plan" >> "$GITHUB_STEP_SUMMARY" ;;
+          esac
+          exit $code
