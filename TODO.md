@@ -68,11 +68,11 @@ Chacun doit **commiter sous son nom**, **ouvrir et relire des PR**, et **savoir 
 - [ ] Relire les PR des autres
 
 **Aboubakar (CI/CD et sécurité)**
-- [ ] `envs/*/secrets.tf` : `aws_ssm_parameter` SecureString avec `value_wo` et `value_wo_version`
-- [ ] Variable `app_secret` : `ephemeral = true`, `sensitive = true`, **sans valeur par défaut**
-- [ ] Rôle IAM `novasphere-<env>-instance` + profil d'instance : lecture de **son** paramètre uniquement, actions Session Manager
-- [ ] Secrets GitHub `APP_SECRET_DEV` et `APP_SECRET_PROD`
-- [ ] `.github/workflows/terraform-pr.yml` : `permissions: id-token: write`, connexion par `role-to-assume`, `fmt -check`, `validate`, `plan` en dev et prod, plan posté en commentaire
+- [x] `envs/*/secrets.tf` : `aws_ssm_parameter` SecureString avec `value_wo` et `value_wo_version`
+- [x] Variable `app_secret` : `ephemeral = true`, `sensitive = true`, **sans valeur par défaut**
+- [x] Rôle IAM `novasphere-<env>-instance` + profil d'instance : lecture de **son** paramètre uniquement, actions Session Manager
+- [x] Secrets GitHub `APP_SECRET_DEV` et `APP_SECRET_PROD`
+- [x] `.github/workflows/terraform-pr.yml` : `permissions: id-token: write`, connexion par `role-to-assume`, `fmt -check`, `validate`, `plan` en dev et prod, plan posté en commentaire
 
 **Tous, en fin de séance**
 - [ ] Remplir `RESTE_A_FAIRE.md` : 2 items nominatifs par personne, signé, photo jointe
