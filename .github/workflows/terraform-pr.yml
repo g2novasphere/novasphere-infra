@@ -56,6 +56,10 @@ jobs:
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.MODULE_DEPLOY_KEY }}
+      # web.tf appelle le module en HTTPS (pratique en local avec gh) ; en CI on passe
+      # par SSH pour utiliser la deploy key en lecture seule du dépôt privé du module.
+      - if: env.MODULE_DEPLOY_KEY != ''
+        run: git config --global url."git@github.com:g2novasphere/terraform-aws-novasphere-web".insteadOf "https://github.com/g2novasphere/terraform-aws-novasphere-web"
 
       - uses: hashicorp/setup-terraform@v3
         with:
