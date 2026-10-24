@@ -26,7 +26,7 @@
 
 ## 2. Politique IAM de l'instance
 
-Chaque environnement a son rôle `novasphere-<env>-instance`, créé par Terraform dans `secrets.tf`, avec uniquement ceci :
+Chaque environnement a son rôle `novasphere-<env>-instance` et son profil d'instance du même nom, créés par Terraform dans `secrets.tf`, avec uniquement ceci (politique en ligne, ARN réels résolus par Terraform) :
 
 ```json
 {
@@ -39,11 +39,16 @@ Chaque environnement a son rôle `novasphere-<env>-instance`, créé par Terrafo
       "Resource": "arn:aws:ssm:eu-west-3:<compte>:parameter/novasphere/<env>/app_secret"
     },
     {
-      "Sid": "DechiffrerViaSSM",
+      "Sid": "DechiffrerSonSecretViaSSM",
       "Effect": "Allow",
       "Action": "kms:Decrypt",
-      "Resource": "arn:aws:kms:eu-west-3:<compte>:key/<id de la clé aws/ssm>",
-      "Condition": { "StringEquals": { "kms:ViaService": "ssm.eu-west-3.amazonaws.com" } }
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "kms:ViaService": "ssm.eu-west-3.amazonaws.com",
+          "kms:EncryptionContext:PARAMETER_ARN": "arn:aws:ssm:eu-west-3:<compte>:parameter/novasphere/<env>/app_secret"
+        }
+      }
     },
     {
       "Sid": "SessionManager",
@@ -62,6 +67,9 @@ Chaque environnement a son rôle `novasphere-<env>-instance`, créé par Terrafo
 ```
 
 Principe : moindre privilège. L'instance de dev ne peut pas lire le secret de prod, et inversement.
+
+- **Déchiffrement** : `kms:Decrypt` n'est accordé que pour un appel passé par SSM **et** pour ce paramètre précis (SSM place l'ARN du paramètre dans le contexte de chiffrement). La clé n'est pas désignée par son ID : la clé gérée `aws/ssm` n'existe qu'après le premier SecureString du compte, ce qui ferait échouer un premier déploiement.
+- **Pourquoi pas `AmazonSSMManagedInstanceCore`** : cette politique gérée autorise `ssm:GetParameter` sur `*`, donc la lecture du secret de l'autre environnement. Les actions de Session Manager sont listées à la main à la place.
 
 ## 3. Authentification de la CI par OIDC
 
