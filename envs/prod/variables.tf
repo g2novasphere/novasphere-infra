@@ -34,3 +34,31 @@ variable "vpc_cidr" {
     error_message = "vpc_cidr doit être un bloc CIDR IPv4 valide."
   }
 }
+
+variable "instance_type" {
+  description = "Type des instances web (petits types uniquement, pour préserver les crédits)"
+  type        = string
+  default     = "t3.micro"
+
+  validation {
+    condition     = contains(["t3.micro", "t3.small"], var.instance_type)
+    error_message = "instance_type doit valoir t3.micro ou t3.small (budget de l'équipe)."
+  }
+}
+
+variable "min_size" {
+  description = "Nombre minimal d'instances (2 pour la haute disponibilité)"
+  type        = number
+  default     = 2
+}
+
+variable "max_size" {
+  description = "Nombre maximal d'instances"
+  type        = number
+  default     = 3
+
+  validation {
+    condition     = var.max_size <= 4
+    error_message = "max_size ne doit pas dépasser 4 (budget de l'équipe)."
+  }
+}
