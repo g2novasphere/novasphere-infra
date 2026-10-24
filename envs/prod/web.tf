@@ -2,9 +2,9 @@
 # Toutes les valeurs viennent des autres fichiers de l'environnement :
 # réseau (network.tf), AMI (main.tf), profil d'instance (secrets.tf).
 module "web" {
-  source = "git::https://github.com/g2novasphere/terraform-aws-novasphere-web.git?ref=v1.2.0"
+  source = "git::https://github.com/g2novasphere/terraform-aws-novasphere-web.git?ref=v1.4.0"
 
-  name_prefix = "novasphere"
+  name_prefix = local.name_prefix
   environment = var.environment
 
   vpc_id     = module.vpc.vpc_id
