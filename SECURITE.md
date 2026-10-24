@@ -30,10 +30,10 @@ foreach ($e in "dev","prod") {
 
 | Vérification | Résultat attendu | Résultat dev | Résultat prod | Fait le |
 |---|---|---|---|---|
-| Secret absent du state | `0` | __ | __ | __ |
-| Secret absent de l'historique Git | `0` | __ | __ | __ |
-| Secret absent des logs de CI (10 derniers runs) | `0` | __ | __ | __ |
-| Aucun tfvars ni state commité (`git ls-files \| grep -E "tfstate\|\.tfvars$"`) | rien | __ | | __ |
+| Secret absent du state (state lu : 19 ressources en dev, 45 en prod) | `0` | 0 | 0 | 24/10/2026 |
+| Secret absent de l'historique Git (`git log -p --all`) | `0` | 0 | 0 | 24/10/2026 |
+| Secret absent des logs de CI (10 derniers runs, 1 Mo de logs lus) | `0` | 0 | 0 | 24/10/2026 |
+| Aucun tfvars ni state commité (`git ls-files \| grep -E "tfstate\|\.tfvars$"`) | rien | rien | rien | 24/10/2026 |
 | Aucune valeur par défaut sur `app_secret` (`secrets.tf`) | pas de `default` | conforme | conforme | 24/10/2026 |
 | Valeur absente du plan (`value_wo = (write-only attribute)`) | write-only | conforme | conforme | 24/10/2026 |
 

@@ -88,8 +88,8 @@ Chacun doit **commiter sous son nom**, **ouvrir et relire des PR**, et **savoir 
   - [x] job `drift` déclenchable (`workflow_dispatch`, `plan -detailed-exitcode`)
   - [ ] apply relançable à la main (`workflow_dispatch`) pour redéployer en début de session
 - [x] Lancer checkov sur `envs/` et sur le module ; corriger ou justifier chaque résultat
-- [ ] Vérifier que le secret est absent du state, de l'historique Git et des logs de CI
-- [ ] Compléter `SECURITE.md` avec la **vraie sortie du scan**
+- [x] Vérifier que le secret est absent du state, de l'historique Git et des logs de CI
+- [x] Compléter `SECURITE.md` avec la **vraie sortie du scan**
 
 **Maxime (module)**
 - [ ] Corrections du scan dans le module → publier `v1.1.0` (ne jamais modifier `v1.0.0`)
