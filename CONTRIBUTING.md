@@ -88,6 +88,7 @@ La liste de contournement (*bypass list*) est vide : personne, administrateurs c
   terraform destroy -target=module.web -target=module.vpc
   ```
   Le bucket de state, les rôles IAM, le fournisseur OIDC et les paramètres SSM sont conservés (gratuits).
+- **Jamais de `terraform destroy` sans `-target`** : il supprime aussi `ci.tf`, donc le rôle de la CI et le fournisseur OIDC, et coupe toute la chaîne (incident du 24/10, réparé par le bootstrap `-target` du README).
 - Les crédits sont limités : on surveille l'alerte de budget.
 
 ## Traçabilité
