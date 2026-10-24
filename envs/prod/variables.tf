@@ -23,3 +23,14 @@ variable "owner" {
   description = "Équipe propriétaire, reportée dans les tags"
   type        = string
 }
+
+variable "vpc_cidr" {
+  description = "Plage d'adresses du VPC de l'environnement"
+  type        = string
+  default     = "10.0.0.0/16"
+
+  validation {
+    condition     = can(cidrhost(var.vpc_cidr, 0))
+    error_message = "vpc_cidr doit être un bloc CIDR IPv4 valide."
+  }
+}
