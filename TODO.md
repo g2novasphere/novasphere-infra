@@ -20,10 +20,10 @@ Chacun doit **commiter sous son nom**, **ouvrir et relire des PR**, et **savoir 
 - [ ] Lancer `scripts/create-state-bucket.sh` (bucket versionné, chiffré, accès public bloqué)
 
 **Johan (Git)**
-- [ ] Créer le dépôt `novasphere-infra` et pousser le premier commit **avec le backend déjà configuré**
-- [ ] Protéger `main` : PR obligatoire, 1 approbation minimum, pas de push direct
+- [x] Créer le dépôt `novasphere-infra` et pousser le premier commit **avec le backend déjà configuré**
+- [x] Protéger `main` : PR obligatoire, 1 approbation minimum, pas de push direct
 - [ ] Ajouter l'intervenant comme collaborateur
-- [ ] Commiter `.terraform.lock.hcl` (généré pour toutes les plateformes)
+- [x] Commiter `.terraform.lock.hcl` (généré pour toutes les plateformes)
 
 **Maxime (module)**
 - [ ] Créer le dépôt `terraform-aws-novasphere-web` avec la structure vide : `.gitignore`, `versions.tf`, `variables.tf`, `main.tf`, `outputs.tf`
@@ -62,10 +62,10 @@ Chacun doit **commiter sous son nom**, **ouvrir et relire des PR**, et **savoir 
 - [ ] Premier déploiement de dev en test, puis destruction
 
 **Johan (Git)**
-- [ ] `envs/*/web.tf` : appel `module "web"` avec `?ref=v1.0.0`, profil d'instance créé dans `secrets.tf`
-- [ ] `envs/*/outputs.tf` : `alb_dns_name`, `target_group_arn`, `vpc_id`
+- [x] `envs/*/web.tf` : appel `module "web"` avec `?ref=v1.0.0`, profil d'instance créé dans `secrets.tf`
+- [x] `envs/*/outputs.tf` : `alb_dns_name`, `target_group_arn`, `vpc_id`
 - [ ] Modèle de description de PR (`.github/pull_request_template.md`)
-- [ ] Relire les PR des autres
+- [x] Relire les PR des autres
 
 **Aboubakar (CI/CD et sécurité)**
 - [x] `envs/*/secrets.tf` : `aws_ssm_parameter` SecureString avec `value_wo` et `value_wo_version`
@@ -104,7 +104,7 @@ Chacun doit **commiter sous son nom**, **ouvrir et relire des PR**, et **savoir 
 **Johan (Git)**
 - [ ] Compléter `CONTRIBUTING.md` avec les règles réellement appliquées
 - [ ] Vérifier qu'aucun fichier interdit n'est suivi : `git ls-files | grep -E "tfstate|\.tfvars$|\.terraform/|\.pem"`
-- [ ] Vérifier que `envs/dev` et `envs/prod` ne diffèrent que par la clé du backend : `diff -r envs/dev envs/prod`
+- [x] Vérifier que `envs/dev` et `envs/prod` ne diffèrent que par la clé du backend : `diff -r envs/dev envs/prod`
 
 **Tous**
 - [ ] Compléter sa partie du `README.md`
