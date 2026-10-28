@@ -1,0 +1,33 @@
+name: terraform-security
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checkov:
+    name: Checkov - Terraform security scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Checkov
+        run: python -m pip install checkov==3.4.0
+
+      - name: Scan Terraform environments
+        run: checkov --directory envs/ --framework terraform --quiet

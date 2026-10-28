@@ -59,6 +59,8 @@ resource "aws_iam_role" "instance" {
 }
 
 data "aws_iam_policy_document" "instance" {
+  #checkov:skip=CKV_AWS_356:ssmmessages:* et ssm:UpdateInstanceInformation n'acceptent pas de ressource précise ; kms:Decrypt est limité par ViaService et PARAMETER_ARN
+  #checkov:skip=CKV_AWS_111:mêmes actions Session Manager, sans ressource possible ; la lecture du secret est limitée à son ARN
   statement {
     sid       = "LireSonSecret"
     actions   = ["ssm:GetParameter"]
