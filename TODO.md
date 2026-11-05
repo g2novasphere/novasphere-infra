@@ -83,13 +83,13 @@ Chacun doit **commiter sous son nom**, **ouvrir et relire des PR**, et **savoir 
 
 **Aboubakar (CI/CD et sécurité)**
 - [ ] `.github/workflows/terraform-apply.yml` :
-  - [ ] au merge sur `main` : plan dev → fichier de plan → `apply` de ce fichier
-  - [ ] job prod avec `environment: prod` (approbation obligatoire)
-  - [ ] job `drift` déclenchable (`workflow_dispatch`, `plan -detailed-exitcode`)
+  - [x] au merge sur `main` : plan dev → fichier de plan → `apply` de ce fichier
+  - [x] job prod avec `environment: prod` (approbation obligatoire)
+  - [x] job `drift` déclenchable (`workflow_dispatch`, `plan -detailed-exitcode`)
   - [ ] apply relançable à la main (`workflow_dispatch`) pour redéployer en début de session
-- [ ] Lancer checkov sur `envs/` et sur le module ; corriger ou justifier chaque résultat
-- [ ] Vérifier que le secret est absent du state, de l'historique Git et des logs de CI
-- [ ] Compléter `SECURITE.md` avec la **vraie sortie du scan**
+- [x] Lancer checkov sur `envs/` et sur le module ; corriger ou justifier chaque résultat
+- [x] Vérifier que le secret est absent du state, de l'historique Git et des logs de CI
+- [x] Compléter `SECURITE.md` avec la **vraie sortie du scan**
 
 **Maxime (module)**
 - [ ] Corrections du scan dans le module → publier `v1.1.0` (ne jamais modifier `v1.0.0`)

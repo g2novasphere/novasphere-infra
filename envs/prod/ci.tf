@@ -91,6 +91,7 @@ resource "aws_iam_role_policy_attachment" "ci_poweruser" {
 # (rôle et profil d'instance novasphere-<env>-*). Les rôles novasphere-ci-* n'en font pas
 # partie : la CI ne peut ni s'élever ses propres droits, ni toucher au rôle de l'autre environnement.
 data "aws_iam_policy_document" "ci_iam" {
+  #checkov:skip=CKV_AWS_356:lecture seule (iam:Get*, iam:List*) nécessaire au refresh du state ; l'écriture IAM est limitée à novasphere-<env>-*
   statement {
     sid       = "LireIam"
     actions   = ["iam:Get*", "iam:List*"]
