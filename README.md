@@ -83,26 +83,45 @@ terraform plan
 ```
 
 **Étape 4 — déployer par la CI** (le seul chemin autorisé pour créer l'infrastructure) :
-1. Créer une branche, modifier, pousser, ouvrir une pull request.
-2. La CI poste `fmt`, `validate` et le `plan` en commentaire. Relire le plan.
-3. Merger : la CI applique **dev** à partir du fichier de plan.
-4. Dans l'onglet *Actions*, approuver le job **prod**.
+1. Créer une branche depuis `main` à jour, modifier, pousser, ouvrir une pull request (`gh pr create`) ; la description est pré-remplie par le modèle de PR.
+2. La CI lance `fmt`, `validate` et `plan` pour dev et prod, et poste chaque plan en commentaire. Le relecteur (un autre membre) lit la ligne `Plan: X to add, Y to change, Z to destroy`, puis approuve.
+3. Merger : `gh pr merge <numéro> --squash --delete-branch`. La CI enregistre le plan de dev dans un fichier, puis applique **ce fichier**.
+4. Le job **prod** attend une approbation : *Actions* → le run → *Review deployments* → `prod` → *Approve and deploy*. Ne jamais laisser ce job en attente : il bloque tous les runs suivants (un seul déploiement à la fois).
 
-À COMPLÉTER : temps de déploiement mesuré (dev : __ min, prod : __ min).
+Redéployer en début de session, sans PR, à partir du code de `main` :
+```bash
+gh workflow run terraform-apply.yml --ref main -f action=apply
+gh run watch $(gh run list --workflow terraform-apply.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+```
+Puis approuver le job prod comme ci-dessus.
+
+Temps de déploiement mesuré (création complète) : dev ≈ 3 min (2 min 58 s), prod ≈ 3 min (2 min 46 s) après approbation. Compter 1 à 3 min de plus pour que les instances passent leurs health checks.
 
 ## 4. Vérifier
 
+L'adresse des ALB change à chaque recréation : on la récupère par leur nom.
 ```bash
-cd envs/dev && terraform output -raw alb_dns_name
-curl http://$(terraform output -raw alb_dns_name)/
+for env in dev prod; do
+  DNS=$(aws elbv2 describe-load-balancers --names novasphere-$env-alb --query 'LoadBalancers[0].DNSName' --output text)
+  echo "== $env : http://$DNS/"
+  for i in 1 2 3 4; do curl -s "http://$DNS/" | grep -o 'NovaSphere [a-z]*\|ID: [^|]*| Zone: [^ ]*'; done
+done
 ```
-La page doit afficher l'environnement (`dev` ou `prod`), l'identifiant de l'instance, sa zone de disponibilité et l'empreinte du secret. Rafraîchir plusieurs fois : l'instance et la zone changent (répartition par l'ALB).
+Attendu pour chaque environnement : `NovaSphere dev` (ou `prod`) et deux identifiants d'instance dans deux zones (`eu-west-3a`, `eu-west-3b`) : l'ALB répartit les requêtes entre les deux instances de l'ASG. La page complète affiche aussi l'empreinte du secret. Un `502` ou `503` juste après un déploiement signifie que les instances passent encore leurs health checks.
+
+État des instances dans le target group :
+```bash
+TG=$(aws elbv2 describe-target-groups --names novasphere-dev-tg --query 'TargetGroups[0].TargetGroupArn' --output text)
+aws elbv2 describe-target-health --target-group-arn "$TG" \
+  --query 'TargetHealthDescriptions[].{instance:Target.Id,etat:TargetHealth.State}' --output table
+```
+`initial` : en démarrage ; `healthy` : prête.
 
 Le secret est bien en SecureString, sans afficher sa valeur :
 ```bash
 aws ssm describe-parameters --parameter-filters "Key=Name,Values=/novasphere/dev/app_secret" \
   --query 'Parameters[0].Type'           # → "SecureString"
-terraform state pull | grep -ci "<valeur du secret>"   # → 0
+(cd envs/dev && terraform state pull) | grep -ci "<valeur du secret>"   # → 0
 ```
 
 Accès à une instance sans SSH (extension Session Manager) :
@@ -113,7 +132,11 @@ ID=$(aws ec2 describe-instances \
 aws ssm start-session --target "$ID"
 ```
 
-Détection de dérive : *Actions* → *terraform-apply* → *Run workflow* → job `drift`. Code 0 : aucune dérive ; code 2 : dérive détectée.
+Détection de dérive (lancement manuel, rien n'est modifié) :
+```bash
+gh workflow run terraform-apply.yml --ref main -f action=drift
+```
+Un job par environnement ; celui de prod demande une approbation (environnement protégé). Code 0 : aucune dérive ; code 2 : dérive détectée (le plan détaille l'écart).
 
 ## 5. Détruire (fin de chaque session de travail)
 
@@ -124,7 +147,11 @@ On détruit uniquement ce qui est facturé (la brique web et le réseau). Le fou
 export TF_VAR_app_secret='x'   # valeur exigée par Terraform, non utilisée pour détruire
 cd envs/prod && terraform destroy -target=module.web -target=module.vpc
 cd ../dev   && terraform destroy -target=module.web -target=module.vpc
+unset TF_VAR_app_secret
 ```
+
+**Jamais de `terraform destroy` sans `-target`** : il détruirait aussi `ci.tf` (rôle de la CI et fournisseur OIDC) et couperait toute la chaîne de déploiement ; la réparation est l'étape 2 ci-dessus. Avant de taper `yes`, relire le plan : il ne doit contenir ni `aws_iam_role.ci`, ni `aws_iam_openid_connect_provider`, ni `aws_ssm_parameter`.
+
 À la session suivante, un merge (ou une relance du workflow d'apply) recrée tout par la CI. Le bucket du state n'est jamais détruit.
 
 Vérifier qu'il ne reste rien de facturé :

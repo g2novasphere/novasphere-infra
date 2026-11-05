@@ -69,4 +69,13 @@ Le fonctionnement a été vérifié dès la séance 8 : une instance de test por
 
 Le rôle des instances porte uniquement les actions nécessaires à Session Manager (voir SECURITE.md).
 
-À COMPLÉTER : capture ou commande de la session ouverte sur une instance de prod.
+
+Session ouverte le 24/10/2026 sur une instance de prod :
+
+    aws ssm start-session --target i-09a22ad097152b045
+    sh-5.2$ whoami
+    ssm-user
+    sh-5.2$ curl localhost
+    <h1>NovaSphere prod</h1><p>ID: i-09a22ad097152b045 | Zone: eu-west-3b | ...</p>
+
+L'utilisateur de la session est `ssm-user`. Le Security Group des instances de prod n'a qu'une seule règle d'entrée : le port 80 depuis le Security Group de l'ALB (`UserIdGroupPairs`, `IpRanges` vide). Aucun port 22, aucune paire de clés sur le compte.
