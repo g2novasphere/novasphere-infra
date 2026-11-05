@@ -77,7 +77,7 @@ Vérifier : *Actions* → *terraform-apply* → *Run workflow* → `apply`. Le j
 ```bash
 cd envs/dev
 cp terraform.tfvars.example terraform.tfvars
-export TF_VAR_app_secret='valeur-de-test'   # jamais dans un fichier
+export TF_VAR_app_secret='valeur-de-test-locale-non-utilisee'   # jamais dans un fichier
 terraform init
 terraform plan
 ```
@@ -144,7 +144,7 @@ Rien ne doit tourner entre deux sessions : avec les deux environnements, on cons
 
 On détruit uniquement ce qui est facturé (la brique web et le réseau). Le fournisseur OIDC, les rôles IAM et le paramètre SSM restent en place : ils ne coûtent rien, et la CI garde son accès pour la session suivante.
 ```bash
-export TF_VAR_app_secret='x'   # valeur exigée par Terraform, non utilisée pour détruire
+export TF_VAR_app_secret='valeur-de-test-locale-non-utilisee'   # valeur exigée par Terraform, non utilisée pour détruire
 cd envs/prod && terraform destroy -target=module.web -target=module.vpc
 cd ../dev   && terraform destroy -target=module.web -target=module.vpc
 unset TF_VAR_app_secret
