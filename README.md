@@ -169,7 +169,13 @@ aws autoscaling describe-auto-scaling-groups --query 'AutoScalingGroups[].AutoSc
 | `Error acquiring the state lock` | un autre plan ou apply en cours | attendre ; `terraform force-unlock <ID>` seulement si personne ne travaille |
 | plan qui veut tout recréer | mauvais compte AWS | vérifier `aws sts get-caller-identity` |
 | cibles `unhealthy` dans le target group | bootstrap en échec | se connecter par Session Manager, lire `/var/log/cloud-init-output.log` |
-| À COMPLÉTER | erreurs réellement rencontrées par l'équipe | |
+| `Not authorized to perform sts:AssumeRoleWithWebIdentity` sur **tous** les jobs | `sub` de la politique de confiance sans les identifiants du dépôt : il utilise les sujets OIDC immuables | `gh api repos/<org>/<repo>/actions/oidc/customization/sub` donne le préfixe exact à mettre dans `ci.tf` |
+| même erreur sur **un seul** job, l'autre passe | refus ponctuel de STS | `gh run rerun <id> --failed` |
+| `NoSuchEntity: novasphere-ci-prod` / la CI prod ne s'authentifie plus | rôle CI supprimé (destroy sans `-target`, ou suppression à la main) | le recréer en local : `terraform -chdir=envs/prod apply -target=aws_iam_role_policy_attachment.ci_poweruser -target=aws_iam_role_policy.ci_iam` |
+| `InvalidClientTokenId` en local | anciennes clés AWS dans les variables d'environnement | `Remove-Item Env:AWS_ACCESS_KEY_ID, Env:AWS_SECRET_ACCESS_KEY, Env:AWS_SESSION_TOKEN` puis `aws sso login` |
+| `Module not installed` | nouveau module ajouté depuis le dernier `init` | `terraform init` (sans `-upgrade`, pour garder le lock commité) |
+| `app_secret doit faire au moins 16 caractères` | `TF_VAR_app_secret` trop court (ou secret GitHub absent en CI) | en local : `$env:TF_VAR_app_secret = "x" * 16` |
+| `could not read Username for 'https://github.com'` au `init` en CI | module appelé dans un dépôt privé | dépôt du module public (il ne contient aucun secret) |
 
 ## 7. Documentation du projet
 
