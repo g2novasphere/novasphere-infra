@@ -103,7 +103,7 @@ Chacun doit **commiter sous son nom**, **ouvrir et relire des PR**, et **savoir 
 
 **Johan (Git)**
 - [ ] Compléter `CONTRIBUTING.md` avec les règles réellement appliquées
-- [ ] Vérifier qu'aucun fichier interdit n'est suivi : `git ls-files | grep -E "tfstate|\.tfvars$|\.terraform/|\.pem"`
+- [x] Vérifier qu'aucun fichier interdit n'est suivi : `git ls-files | grep -E "tfstate|\.tfvars$|\.terraform/|\.pem"`
 - [x] Vérifier que `envs/dev` et `envs/prod` ne diffèrent que par la clé du backend : `diff -r envs/dev envs/prod`
 
 **Tous**
